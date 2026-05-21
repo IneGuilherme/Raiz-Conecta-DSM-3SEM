@@ -137,7 +137,6 @@ export default function PainelAdmin() {
   };
 
   const apagarSugestao = async (id: number) => {
-    if (!confirm("Descartar esta sugestão?")) return;
     try {
       const res = await fetch(`/api/produtor/sugestao?id=${id}`, { method: "DELETE" });
       if (res.ok) {
@@ -199,11 +198,11 @@ export default function PainelAdmin() {
                     <div>
                       <div className="flex justify-between items-start mb-4 border-b border-amber-100 pb-4">
                         <div>
-                          <Badge variant={user.tipo === "produtor" ? "success" : "neutral"}>
+                          <Badge variant={user.tipo === "produtor" ? "success" : "neutral"} className="mb-2 inline-block">
                             {user.tipo === "produtor" ? "Produtor Rural" : "Mercado"}
                           </Badge>
-                          <h3 className="text-xl font-bold text-gray-900 mt-2">{user.nomeFantasia || user.razaoSocial}</h3>
-                          <p className="text-xs text-gray-500">{user.email}</p>
+                          <h3 className="text-xl font-bold text-gray-900">{user.nomeFantasia || user.razaoSocial}</h3>
+                          <p className="text-xs text-gray-500 mt-1">{user.email}</p>
                         </div>
                       </div>
                       <div className="space-y-2 text-sm text-gray-700 mb-6">
@@ -216,19 +215,19 @@ export default function PainelAdmin() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 mt-auto">
                       <Button
                         onClick={() => alterarStatus(user.email, user.tipo, "REJEITADO")}
                         isLoading={processando === user.email}
                         variant="outline"
-                        className="w-1/2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                        className="w-1/2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 h-11"
                       >
                         {!processando && <XCircle size={18} className="mr-1" />} Recusar
                       </Button>
                       <Button
                         onClick={() => alterarStatus(user.email, user.tipo, "APROVADO")}
                         isLoading={processando === user.email}
-                        className="w-1/2 bg-green-600 hover:bg-green-700"
+                        className="w-1/2 bg-green-600 hover:bg-green-700 h-11"
                       >
                         {!processando && <CheckCircle size={18} className="mr-1" />} Aprovar
                       </Button>
@@ -244,8 +243,8 @@ export default function PainelAdmin() {
         {abaAtual === "gestao" && (
           <Card className="bg-white shadow-sm border border-gray-200 overflow-hidden px-0 md:px-0">
             <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
-              <h2 className="text-lg font-bold text-gray-800">Usuários na Base de Dados</h2>
-              <div className="relative w-full md:w-72">
+              <h2 className="text-lg font-bold text-gray-800 ml-2">Usuários na Base de Dados</h2>
+              <div className="relative w-full md:w-72 mr-2">
                 <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
                 <input type="text" placeholder="Buscar usuário ou e-mail..." value={filtroBusca} onChange={(e) => setFiltroBusca(e.target.value)} className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
               </div>
@@ -254,10 +253,10 @@ export default function PainelAdmin() {
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider">
-                    <th className="p-4 font-bold border-b border-gray-200">Usuário</th>
+                    <th className="p-4 pl-6 font-bold border-b border-gray-200">Usuário</th>
                     <th className="p-4 font-bold border-b border-gray-200">Tipo</th>
                     <th className="p-4 font-bold border-b border-gray-200">Status</th>
-                    <th className="p-4 font-bold border-b border-gray-200 text-right">Ações</th>
+                    <th className="p-4 pr-6 font-bold border-b border-gray-200 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm divide-y divide-gray-100">
@@ -266,7 +265,7 @@ export default function PainelAdmin() {
                   ) : (
                     listaGestao.map((user) => (
                       <tr key={user.email} className="hover:bg-gray-50 transition-colors">
-                        <td className="p-4">
+                        <td className="p-4 pl-6">
                           <p className="font-bold text-gray-900">{user.nomeFantasia || user.razaoSocial}</p>
                           <p className="text-xs text-gray-500">{user.email}</p>
                         </td>
@@ -278,7 +277,7 @@ export default function PainelAdmin() {
                             {user.status}
                           </Badge>
                         </td>
-                        <td className="p-4 text-right space-x-2 flex justify-end gap-2">
+                        <td className="p-4 pr-6 text-right space-x-2 flex justify-end gap-2">
                           {user.status === "APROVADO" ? (
                             <Button onClick={() => alterarStatus(user.email, user.tipo, "SUSPENSO")} isLoading={processando === user.email} variant="outline" className="px-3 py-1.5 h-8 text-xs font-bold border-amber-300 text-amber-700 hover:bg-amber-50">
                               Suspender
@@ -373,29 +372,37 @@ export default function PainelAdmin() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {sugestoes.map((sug) => (
-                  <Card key={sug.id} className="p-6 border-amber-200 bg-amber-50/30 flex flex-col justify-between">
+                  <Card key={sug.id} className="p-6 bg-white shadow-sm border border-gray-200 flex flex-col justify-between">
                     <div>
-                      <div className="flex justify-between items-start mb-4 border-b border-amber-100 pb-4">
-                        <div>
-                          <Badge variant="warning">Nova Ideia</Badge>
-                          <h3 className="text-xl font-bold text-gray-900 mt-2">{sug.nomeProduto}</h3>
-                          <p className="text-xs text-gray-500">Enviado por: {sug.emailProdutor}</p>
-                        </div>
+                      <div className="mb-4 border-b border-gray-100 pb-4">
+                        <Badge variant="warning" className="mb-2 inline-block">Nova Ideia</Badge>
+                        <h3 className="text-xl font-bold text-gray-900">{sug.nomeProduto}</h3>
+                        <p className="text-xs text-gray-500 mt-1">Enviado por: {sug.emailProdutor}</p>
                       </div>
 
+                      {/* AJUSTE AQUI: aspect-square para formato 1:1 perfeito e objectFit="cover" para remover os espaços brancos */}
                       {sug.imagemUrl && (
-                        <div className="w-full h-32 relative mb-4 rounded-lg overflow-hidden border border-gray-200">
-                          <Image src={sug.imagemUrl} alt="Sugestão" layout="fill" objectFit="cover" />
+                        <div className="w-full aspect-square relative mb-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50">
+                          <Image
+                            src={sug.imagemUrl}
+                            alt="Sugestão"
+                            layout="fill"
+                            objectFit="cover"
+                          />
                         </div>
                       )}
 
-                      <div className="bg-white p-3 rounded-lg border border-gray-100 text-sm text-gray-700 mb-6 italic">
+                      <div className="bg-white p-3.5 rounded-xl border border-gray-100 text-sm text-gray-700 mb-6 italic shadow-sm">
                         "{sug.descricao || 'Nenhuma descrição detalhada.'}"
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
-                      <Button onClick={() => apagarSugestao(sug.id)} variant="outline" className="w-full border-gray-300 text-gray-600 hover:bg-gray-100 h-10">
+                    <div className="flex gap-3 mt-auto">
+                      <Button
+                        onClick={() => apagarSugestao(sug.id)}
+                        variant="outline"
+                        className="w-full border-green-600 text-green-700 hover:bg-green-50 h-12 font-bold"
+                      >
                         <CheckCircle size={18} className="mr-2" /> Marcar como Lido / Descartar
                       </Button>
                     </div>
