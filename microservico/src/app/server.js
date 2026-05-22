@@ -2,6 +2,8 @@ require('dotenv').config({ path: '../../.env' });
 const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 
@@ -19,22 +21,41 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// ROTA 1: Boas-vindas (Ao criar a conta)
+// Função para ler o HTML e injetar as variáveis
+function lerTemplateHTML(nomeArquivo, variaveis) {
+    // Pega o caminho exato do arquivo na pasta templates
+    const caminho = path.join(__dirname, 'templates', nomeArquivo);
+    
+    // Lê o conteúdo do arquivo HTML
+    let html = fs.readFileSync(caminho, 'utf8');
 
+    // Substitui cada marcador (ex: {{nome}}) pelo valor real
+    for (const [chave, valor] of Object.entries(variaveis)) {
+        html = html.replace(`{{${chave}}}`, valor);
+    }
+    
+    return html;
+}
+
+// ROTA 1: Boas-vindas (Ao criar a conta)
 app.post('/api/email/boas-vindas', async (req, res) => {
     const { email, nome } = req.body;
+    
     try {
+        // 1. Tratamos o nome (se não vier nome, usa 'Produtor')
+        const nomeFinal = nome || 'Produtor';
+
+        // 2. Lemos o arquivo HTML passando a variável
+        const htmlCorpo = lerTemplateHTML('boas-vindas.html', { nome: nomeFinal });
+
+        // 3. Enviamos o e-mail usando o HTML lido
         await transporter.sendMail({
             from: '"Equipe Raiz Conecta" <nao-responda@raizconecta.com.br>',
             to: email,
             subject: "🌱 Bem-vindo ao Raiz Conecta!",
-            html: `
-        <h2>Olá, ${nome || 'Produtor'}!</h2>
-        <p>Que alegria ter você com a gente na plataforma <b>Raiz Conecta</b>.</p>
-        <p>Você acabou de dar o primeiro passo (Nível Semente). Para começar a vender, acesse o sistema e envie a foto do seu documento de identificação.</p>
-        <p>Estamos ansiosos para ver seus produtos!</p>
-      `
+            html: htmlCorpo // <--- Aqui entra o HTML limpinho
         });
+
         console.log(`[E-mail Enviado] Boas-vindas para: ${email}`);
         res.status(200).json({ message: "E-mail enviado com sucesso" });
     } catch (error) {
@@ -44,23 +65,17 @@ app.post('/api/email/boas-vindas', async (req, res) => {
 });
 
 // 📧 ROTA 2: Aprovação (Nível Raiz)
-
 app.post('/api/email/aprovacao', async (req, res) => {
     const { email } = req.body;
     try {
+        // Como não tem variável dinâmica nesse HTML, passamos um objeto vazio {}
+        const htmlCorpo = lerTemplateHTML('aprovacao.html', {});
+
         await transporter.sendMail({
             from: '"Equipe Raiz Conecta" <nao-responda@raizconecta.com.br>',
             to: email,
             subject: "🎉 Aprovado! Você agora é um Produtor Raiz!",
-            html: `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-          <h2 style="color: #16a34a;">Parabéns! Sua documentação foi aprovada. 🌳</h2>
-          <p>Temos o prazer de informar que você atingiu o <b>Nível Raiz</b> na plataforma Raiz Conecta.</p>
-          <p>Seu acesso total foi liberado. A partir de agora, você já pode acessar seu painel e começar a cadastrar seus produtos para venda.</p>
-          <br/>
-          <p>Boas vendas!</p>
-        </div>
-      `
+            html: htmlCorpo
         });
         console.log(`[E-mail Enviado] Aprovação para: ${email}`);
         res.status(200).json({ message: "E-mail de aprovação enviado" });
@@ -71,22 +86,17 @@ app.post('/api/email/aprovacao', async (req, res) => {
 });
 
 // ROTA 3: Rejeição (Documento Inválido)
-
 app.post('/api/email/rejeicao', async (req, res) => {
     const { email } = req.body;
     try {
+        // Também não tem variáveis dinâmicas aqui
+        const htmlCorpo = lerTemplateHTML('rejeicao.html', {});
+
         await transporter.sendMail({
             from: '"Equipe Raiz Conecta" <nao-responda@raizconecta.com.br>',
             to: email,
             subject: "⚠️ Atualização sobre sua documentação",
-            html: `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-          <h2 style="color: #dc2626;">Houve um problema com seu documento.</h2>
-          <p>Infelizmente nossa equipe não conseguiu validar a foto do documento enviada em seu cadastro.</p>
-          <p>Isso geralmente ocorre por imagens embaçadas, cortadas ou envio do documento errado.</p>
-          <p><b>Não se preocupe!</b> Acesse seu painel na plataforma Raiz Conecta e anexe uma nova foto nítida para tentarmos novamente.</p>
-        </div>
-      `
+            html: htmlCorpo
         });
         console.log(`[E-mail Enviado] Rejeição para: ${email}`);
         res.status(200).json({ message: "E-mail de rejeição enviado" });
@@ -96,34 +106,36 @@ app.post('/api/email/rejeicao', async (req, res) => {
     }
 });
 
-// 💡 ROTA 4: Nova Sugestão de Produto
-
+// 💡 ROTA 4: Nova Sugestão de Produto (Agora envia o recibo para o produtor)
 app.post('/api/email/sugestao', async (req, res) => {
-    const { emailProdutor, nomeProduto, descricao } = req.body;
+    // Adicionamos a variável imagemUrl que vem do Front
+    const { emailProdutor, nomeProduto, descricao, imagemUrl } = req.body;
     try {
+        const descricaoFinal = descricao || 'Nenhuma descrição fornecida.';
+        // Se não enviarem foto, colocamos uma imagem padrão de "Sem Imagem"
+        const imagemFinal = imagemUrl || 'https://via.placeholder.com/250x200?text=Sem+Imagem';
+
+        const htmlCorpo = lerTemplateHTML('sugestao.html', {
+            nomeProduto: nomeProduto,
+            descricao: descricaoFinal,
+            imagemUrl: imagemFinal // <-- Passamos a imagem para o HTML
+        });
+
         await transporter.sendMail({
             from: '"Equipe Raiz Conecta" <nao-responda@raizconecta.com.br>',
-            to: "admin@raizconecta.com.br", // Aqui seria o e-mail real do administrador
-            subject: "💡 Nova Sugestão de Produto no Raiz Conecta!",
-            html: `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-          <h2 style="color: #d97706;">Nova Sugestão Recebida!</h2>
-          <p>O produtor <b>${emailProdutor}</b> sugeriu a adição de um novo produto ao catálogo oficial:</p>
-          <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #d97706;">
-              <p><b>Produto:</b> ${nomeProduto}</p>
-              <p><b>Descrição:</b> ${descricao || 'Nenhuma descrição fornecida.'}</p>
-          </div>
-          <p>Acesse o painel de Administração para avaliar a imagem enviada e cadastrar este produto no sistema.</p>
-        </div>
-      `
+            to: emailProdutor, // <-- Mudamos de "admin@" para enviar para o Produtor
+            subject: "💡 Sua sugestão está em análise!",
+            html: htmlCorpo
         });
-        console.log(`[E-mail Enviado] Sugestão de produto: ${nomeProduto}`);
-        res.status(200).json({ message: "E-mail de sugestão enviado" });
+        
+        console.log(`[E-mail Enviado] Recibo de sugestão para: ${emailProdutor}`);
+        res.status(200).json({ message: "E-mail de recibo enviado ao produtor" });
     } catch (error) {
         console.error("Erro ao enviar sugestão:", error);
         res.status(500).json({ error: "Erro ao enviar e-mail" });
     }
 });
+
 // INICIAR O SERVIDOR
 
 const PORT = process.env.PORT || 3001;
