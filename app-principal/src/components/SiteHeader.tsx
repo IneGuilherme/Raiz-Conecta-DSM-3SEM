@@ -12,20 +12,28 @@ export default function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Função que lê quem está logado no navegador
+  // Função blindada para ler quem está logado
   const carregarUsuario = () => {
+    const token = localStorage.getItem("token"); // O JWT é a fonte da verdade!
+
+    // Se não tiver token, não importa o que tem no nome/role, ele está deslogado.
+    if (!token) {
+      setRole(null);
+      setNome(null);
+      return;
+    }
+
     setRole(localStorage.getItem("userRole"));
     setNome(localStorage.getItem("userName"));
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarUsuario();
 
-    // Escuta mudanças de aba e de login para atualizar sozinho
-
+    // Escuta mudanças no navegador para atualizar o Header em tempo real
     window.addEventListener("storage", carregarUsuario);
     window.addEventListener("loginStateChange", carregarUsuario);
+
     return () => {
       window.removeEventListener("storage", carregarUsuario);
       window.removeEventListener("loginStateChange", carregarUsuario);
@@ -33,9 +41,15 @@ export default function SiteHeader() {
   }, [pathname]);
 
   const handleLogout = () => {
+    // 1. Limpa o Frontend
     localStorage.clear();
     setRole(null);
     setNome(null);
+
+    // 2. DELETA O COOKIE PARA O MIDDLEWARE SABER QUE DESLOGOU
+    document.cookie = "token=; path=/; max-age=0;";
+
+    // 3. Atualiza a tela e joga pro login
     window.dispatchEvent(new Event("loginStateChange"));
     router.push("/login");
   };
@@ -43,9 +57,7 @@ export default function SiteHeader() {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm transition-all">
       <div className="max-w-350 mx-auto px-4 md:px-8 h-20 flex justify-between items-center">
-
         {/* LOGO */}
-
         <Link href="/" className="flex items-center gap-2 group">
           <div className="bg-green-100 p-2 rounded-xl group-hover:bg-green-600 transition-colors">
             <Leaf
@@ -59,7 +71,6 @@ export default function SiteHeader() {
         </Link>
 
         {/* MENUS DINÂMICOS */}
-
         <nav className="hidden md:flex items-center gap-8 font-bold text-gray-600">
           {!role && (
             <>
@@ -81,15 +92,14 @@ export default function SiteHeader() {
             </>
           )}
 
-          {/* Se for Mercado ou Produtor, mostra link rápido para o Painel e Perfil */}
-
+          {/* Menus logados: Produtor / Mercado */}
           {(role === "mercado" || role === "produtor") && (
             <>
               <Link
                 href={role === "mercado" ? "/catalogo" : "/produtor"}
                 className="flex items-center gap-2 hover:text-green-600 transition text-gray-800"
               >
-                <LayoutDashboard size={18} />{" "}
+                <LayoutDashboard size={18} />
                 {role === "mercado" ? "Painel de Compras" : "Painel de Vendas"}
               </Link>
               <Link
@@ -101,8 +111,7 @@ export default function SiteHeader() {
             </>
           )}
 
-          {/* Se for Admin */}
-
+          {/* Menus logados: Admin */}
           {role === "admin" && (
             <Link
               href="/admin"
@@ -113,40 +122,35 @@ export default function SiteHeader() {
           )}
         </nav>
 
-        {/* BOTÕES DA DIREITA */}
-        
+        {/* BOTÕES DA DIREITA (ARRUMADO PARA MOBILE) */}
         <div className="flex items-center gap-4">
           {!role ? (
-            <>
-              <Link
-                href="/login"
-                className="font-bold text-green-700 hover:text-green-800 transition hidden sm:block"
-              >
-                Entrar
-              </Link>
-              <Button
-                onClick={() => router.push("/login")}
-                className="bg-green-600 hover:bg-green-700 shadow-md font-bold h-11 px-6"
-              >
-                Criar Conta
-              </Button>
-            </>
+            // Apenas UM botão para acessar/cadastrar (resolve o mobile)
+            <Button
+              onClick={() => router.push("/login")}
+              className="bg-green-600 hover:bg-green-700 shadow-md font-bold h-11 px-6"
+            >
+              Acessar Conta
+            </Button>
           ) : (
+            // Usuário Logado
             <div className="flex items-center gap-4">
               <div className="hidden sm:block text-right">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-1">
                   {role}
                 </p>
-                <p className="text-sm font-black text-gray-800">
+                <p className="text-sm font-black text-gray-800 leading-none">
                   {nome || "Usuário"}
                 </p>
               </div>
               <Button
                 onClick={handleLogout}
                 variant="outline"
-                className="border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 h-10 transition-colors"
+                className="border-gray-200 text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 h-10 px-3 md:px-4 transition-colors"
               >
-                <LogOut size={18} className="mr-2" /> Sair
+                {/* No mobile só aparece o ícone de sair, no desktop aparece "Sair" */}
+                <LogOut size={18} className="md:mr-2" />
+                <span className="hidden md:inline">Sair</span>
               </Button>
             </div>
           )}

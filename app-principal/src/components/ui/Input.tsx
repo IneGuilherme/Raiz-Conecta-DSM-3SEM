@@ -3,7 +3,7 @@ import { LucideIcon } from "lucide-react";
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string;
-    icon?: LucideIcon | React.ElementType; // <-- Adicionamos a permissão para receber um ícone
+    icon?: LucideIcon | React.ElementType; 
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
